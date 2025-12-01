@@ -111,32 +111,12 @@ main {
   line-height: 1.3em;
 }
 
-.habit-actions {
-  display: flex;
-  gap: 8px;
-}
-
 .habit-actions button {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 1.1em;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.edit-btn {
-  color: #2b72c4;
-}
-
-.delete-btn {
-  color: #e53e3e;
-}
-
-.edit-btn:hover,
-.delete-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  margin-left: 5px;
 }
 
 .habit-card p {
@@ -233,6 +213,13 @@ main {
   margin-bottom: 10px;
 }
 
+.habit-progress {
+  margin-top: auto;
+  font-size: 1.2em;
+  display: flex;
+  gap: 4px;
+}
+
 .progress-btn {
   width: 28px;
   height: 28px;
@@ -311,171 +298,6 @@ footer {
 
 .footer-icons a:hover {
   color: #1f5ba0;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.modal {
-  background-color: #f8fbff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 500px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  animation: modalAppear 0.3s ease-out;
-  position: relative;
-  margin: auto;
-}
-
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.modal-header {
-  background-color: #2b72c4;
-  color: white;
-  padding: 20px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.3em;
-  font-weight: 600;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 2em;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-  font-weight: 300;
-}
-
-.modal-close:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #1e3c63;
-  font-size: 0.95em;
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #d7e3f1;
-  border-radius: 8px;
-  font-size: 1em;
-  transition: border-color 0.2s;
-  background-color: white;
-  font-family: "Segoe UI", Roboto, sans-serif;
-  box-sizing: border-box;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #2b72c4;
-  box-shadow: 0 0 0 3px rgba(43, 114, 196, 0.1);
-}
-
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: #a0aec0;
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 100px;
-  font-family: inherit;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #d7e3f1;
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: "Segoe UI", Roboto, sans-serif;
-}
-
-.btn-primary {
-  background-color: #2b72c4;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #225c9b;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-secondary {
-  background-color: #e6eff7;
-  color: #4d5b6b;
-}
-
-.btn-secondary:hover {
-  background-color: #d7e3f1;
-  transform: translateY(-1px);
 }
 
 @media (min-width: 901px) and (max-width: 1200px) {
@@ -568,26 +390,6 @@ footer {
     align-items: flex-end;
     justify-content: flex-end;
   }
-
-  @media (max-width: 600px) {
-    .modal {
-      width: 95%;
-      margin: 10px;
-    }
-    
-    .modal-actions {
-      flex-direction: column;
-    }
-    
-    .btn-primary,
-    .btn-secondary {
-      width: 100%;
-    }
-    
-    .modal-overlay {
-      padding: 10px;
-    }
-  }
 }
 
 @media (max-width: 480px) {
@@ -613,7 +415,7 @@ footer {
     min-height: 120px;
   }
 
-  .progress-btn {
+   .progress-btn {
     width: 22px;
     height: 22px;
   }
@@ -630,50 +432,5 @@ footer {
   .add-habit-btn {
     padding: 6px 12px;
     font-size: 1.1em;
-  }
-
-  @keyframes slideOut {
-    from {
-      opacity: 1;
-      transform: translateX(0);
-    }
-    to {
-      opacity: 0;
-      transform: translateX(-100%);
-    }
-  }
-
-  .habit-card.removing {
-    animation: slideOut 0.3s ease-out forwards;
-  }
-
-  .habit-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .edit-btn,
-  .delete-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1em;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.2s;
-  }
-
-  .edit-btn {
-    color: #2b72c4;
-  }
-
-  .delete-btn {
-    color: #e53e3e;
-  }
-
-  .edit-btn:hover,
-  .delete-btn:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-    transform: scale(1.1);
   }
 }
