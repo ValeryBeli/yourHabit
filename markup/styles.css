@@ -1,0 +1,436 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: #e6eff7;
+  color: #333;
+  line-height: 1.5;
+}
+
+header {
+  background-color: #f8fbff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 80px;
+  border-bottom: 1px solid #d7e3f1;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.9em;
+  font-weight: 600;
+  color: #2b72c4;
+}
+
+.logo img {
+  height: 34px;
+}
+
+.header-icons button {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  margin-left: 15px;
+}
+
+main {
+  padding: 40px 120px;
+}
+
+.subtitle {
+  font-style: italic;
+  color: #4d5b6b;
+  margin-bottom: 25px;
+  font-size: 1.5em;
+}
+
+.habits-section {
+  position: relative;
+}
+
+.habits-section h2 {
+  font-size: 1.4em;
+  margin-bottom: 15px;
+  display: inline-block;
+}
+
+.add-habit-btn { 
+  position: absolute; 
+  right: 0; 
+  top: 0; 
+  background-color: #2b72c4; 
+  color: white; 
+  border: none; 
+  padding: 8px 14px; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  transition: 0.2s; 
+  font-size: 1.2em; 
+}
+
+.add-habit-btn:hover {
+  background-color: #225c9b;
+}
+
+.habits-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.habit-card {
+  background-color: #f8fbff;
+  border-radius: 12px;
+  padding: 18px 22px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 180px;
+}
+
+.habit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.habit-header h3 {
+  font-size: 1.05em;
+  line-height: 1.3em;
+}
+
+.habit-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1em;
+  margin-left: 5px;
+}
+
+.habit-card p {
+  font-size: 0.9em;
+  margin: 5px 0;
+}
+
+.streak {
+  background-color: #d8f5d0;
+  color: #237a1e;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-weight: 600;
+}
+
+.habit-progress {
+  margin-top: auto;
+  font-size: 1.2em;
+  display: flex;
+  gap: 4px;
+}
+
+.progress-section {
+  margin-top: 60px;
+}
+
+.progress-section h2 {
+  font-size: 1.3em;
+  margin-bottom: 20px;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.stat-card {
+  flex: 1;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 40px 25px; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center; 
+  justify-content: center; 
+  gap: 20px;
+  min-height: 160px; 
+}
+
+.stat-icon {
+  width: 48px; 
+  height: 48px;
+  opacity: 0.85;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-info p {
+  font-size: 1em; 
+  color: #4d5b6b;
+  margin-bottom: 5px;
+  font-style: italic;
+}
+
+.stat-info span {
+  font-size: 1.5em; 
+  font-weight: 600;
+  color: #1e3c63;
+  font-style: italic;
+}
+
+.progress-chart {
+  background-color: #f8fbff;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  font-size: 1.3em;
+  font-weight: 500;
+  color: #1e3c63;
+  font-style: italic;
+}
+
+.progress-chart h3 {
+  font-size: 1em;
+  color: #4d5b6b;
+  margin-bottom: 10px;
+}
+
+.habit-progress {
+  margin-top: auto;
+  font-size: 1.2em;
+  display: flex;
+  gap: 4px;
+}
+
+.progress-btn {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #2b72c4;
+  border-radius: 6px;
+  background-color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  color: transparent;
+}
+
+.progress-btn:hover {
+  background-color: #e6eff7;
+  transform: scale(1.1);
+}
+
+.progress-btn.completed {
+  background-color: #2b72c4;
+  color: white;
+  border-color: #2b72c4;
+}
+
+.progress-btn.completed::after {
+  content: "✓";
+}
+
+.progress-btn.missed {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+}
+
+.progress-btn.missed::after {
+  content: "✕";
+}
+
+.progress-btn.pending {
+  background-color: white;
+  border-color: #dee2e6;
+}
+
+.progress-btn.pending:hover::after {
+  content: "✓";
+  color: #2b72c4;
+}
+
+footer {
+  background-color: #d9e7f4;
+  padding: 35px 80px;
+  margin-top: 50px;
+  display: flex;
+  justify-content: right;
+}
+
+.footer-icons img {
+  height: 40px; 
+  width: 40px;
+}
+
+.footer-icons {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  font-size: 1em;
+}
+
+.footer-icons a {
+  color: #2b72c4;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.footer-icons a:hover {
+  color: #1f5ba0;
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  main {
+    padding: 30px 60px;
+  }
+  
+  .habits-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+  }
+  
+  .habit-card {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .habit-progress {
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  
+  .habit-progress span {
+    font-size: 0.9em;
+  }
+  
+  .progress-stats {
+    gap: 15px;
+  }
+  
+  .stat-card {
+    padding: 30px 20px;
+    min-height: 140px;
+  }
+}
+
+@media (max-width: 900px) {
+  header {
+    padding: 20px 30px;
+  }
+
+  main {
+    padding: 25px 30px;
+  }
+
+  .add-habit-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
+  .habits-section h2 {
+    display: inline-block;
+    margin-bottom: 15px;
+  }
+
+  .habits-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .habit-card {
+    width: 100%;
+    min-height: 160px;
+  }
+
+  .progress-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .progress-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8em;
+  }
+
+  .stat-card {
+    min-height: 140px;
+    padding: 25px 20px;
+  }
+
+  footer {
+    padding: 25px 30px;
+    flex-direction: column;
+    text-align: right;
+    gap: 15px;
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    font-size: 1.5em;
+  }
+  
+  .logo img {
+    height: 28px;
+  }
+  
+  .subtitle {
+    font-size: 1.2em;
+  }
+  
+  .habit-card {
+    padding: 15px 18px;
+    min-height: 150px;
+  }
+  
+  .stat-card {
+    padding: 20px 15px;
+    min-height: 120px;
+  }
+
+   .progress-btn {
+    width: 22px;
+    height: 22px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .stat-info span {
+    font-size: 1.3em;
+  }
+  
+  .add-habit-btn {
+    padding: 6px 12px;
+    font-size: 1.1em;
+  }
+}
