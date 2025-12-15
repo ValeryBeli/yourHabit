@@ -9,22 +9,46 @@ function createStatCardTemplate(type, value) {
   switch(type) {
     case 'today':
       icon = 'media/done.png';
-      displayValue = `${value.completed} из ${value.total}`;
+      displayValue = `5`;
+      suffix = ` ( 72% )`;
       break;
-    case 'current_streak':
-      icon = 'media/streak.png';
-      const streakValue = value || StatDefaults.CURRENT_STREAK;
-      displayValue = `${streakValue}`;
-      suffix = streakValue === 1 ? ' день' : ' дня';
-      break;
+  case 'current_streak':
+    icon = 'media/streak.png';
+    const streakValue = value || StatDefaults.CURRENT_STREAK;
+    displayValue = `${streakValue}`;
+    
+    const streakLastDigit = streakValue % 10;
+    const streakLastTwoDigits = streakValue % 100;
+    
+    if (streakLastTwoDigits >= 11 && streakLastTwoDigits <= 14) {
+      suffix = ' дней';
+    } else if (streakLastDigit === 1) {
+      suffix = ' день';
+    } else if (streakLastDigit >= 2 && streakLastDigit <= 4) {
+      suffix = ' дня';
+    } else {
+      suffix = ' дней';
+    }
+    break;
     case 'best_streak':
       icon = 'media/best.png';
       const bestValue = value || StatDefaults.BEST_STREAK;
       displayValue = `${bestValue}`;
-      suffix = bestValue === 1 ? ' день' : ' дней';
+      
+      const bestLastDigit = bestValue % 10;
+      const bestLastTwoDigits = bestValue % 100;
+      
+      if (bestLastTwoDigits >= 11 && bestLastTwoDigits <= 14) {
+        suffix = ' дней';
+      } else if (bestLastDigit === 1) {
+        suffix = ' день';
+      } else if (bestLastDigit >= 2 && bestLastDigit <= 4) {
+        suffix = ' дня';
+      } else {
+        suffix = ' дней';
+      }
       break;
-  }
-
+    }
   return `
     <div class="stat-card" data-stat-type="${type}">
       <img src="${icon}" alt="${StatTitle[type]}" class="stat-icon">

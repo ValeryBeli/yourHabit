@@ -5,7 +5,16 @@ function createHabitsSectionTemplate() {
     <section class="habits-section">
       <h2>Список привычек</h2>
       <button class="add-habit-btn">Добавить привычку</button>
-      <div class="habits-list"></div>
+      <div class="habits-list loading">
+        ${Array(4).fill().map(() => `
+          <div class="habit-card-skeleton">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-progress"></div>
+          </div>
+        `).join('')}
+      </div>
     </section>
   `;
 }

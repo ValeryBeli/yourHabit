@@ -2,7 +2,7 @@ import {createElement} from '../framework/render.js';
 import StatCard from './stat-card.js';
 import ProgressChartComponent from './progress-chart-component.js';
 import {render} from '../framework/render.js';
-import {StatType} from '../const.js';
+import {StatType, DaysOfWeek} from '../const.js';
 
 function createProgressSectionTemplate() {
   return `
@@ -17,7 +17,7 @@ export default class ProgressSection {
   #stats = null;
   #habitModel = null;
 
-  constructor(stats, habitModel) { 
+  constructor(stats, habitModel) {
     this.#stats = stats;
     this.#habitModel = habitModel;
   }
@@ -67,9 +67,9 @@ export default class ProgressSection {
       return;
     }
     
-    const data = this.#getChartDataFromModel();
+    const data = this.#getRealWeekData();
     const totalHabits = this.#stats.today.total;
-
+    
     const maxYValue = totalHabits + 1;
 
     if (typeof Chart === 'undefined') {
@@ -81,7 +81,7 @@ export default class ProgressSection {
     gradient.addColorStop(0, 'rgba(43, 114, 196, 0.3)');
     gradient.addColorStop(1, 'rgba(43, 114, 196, 0.05)');
 
-   
+    try {
       new Chart(ctx, {
         type: 'line',
         data: {
@@ -95,8 +95,8 @@ export default class ProgressSection {
             pointBackgroundColor: '#2b72c4',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            pointRadius: 5,
+            pointHoverRadius: 7,
             fill: true,
             tension: 0.3,
             cubicInterpolationMode: 'monotone'
@@ -120,21 +120,25 @@ export default class ProgressSection {
               callbacks: {
                 label: function(context) {
                   const dayIndex = context.dataIndex;
-                  const isToday = dayIndex === data.labels.length - 1;
-                  const label = `Выполнено: ${context.raw} из ${totalHabits} привычек`;
-                  return isToday ? `${label} (сегодня)` : label;
+                  const isToday = dayIndex === 6; 
+                  const completed = context.raw;
+                  const total = data.totals[dayIndex] || totalHabits;
+                  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                  const label = `Выполнено: ${completed} из ${total} привычек (${percentage}%)`;
+                  return isToday ? `${label} ` : label;
                 },
                 title: function(tooltipItems) {
                   const dayIndex = tooltipItems[0].dataIndex;
-                  const isToday = dayIndex === data.labels.length - 1;
+                  const isToday = dayIndex === 6;
                   const dateLabel = tooltipItems[0].label;
-                  return isToday ? `${dateLabel} (сегодня)` : dateLabel;
+                  return isToday ? `${dateLabel} ` : dateLabel;
                 }
               }
             }
           },
           scales: {
             x: {
+              type: 'category',
               grid: {
                 color: 'rgba(215, 227, 241, 0.5)',
                 drawBorder: false,
@@ -146,14 +150,11 @@ export default class ProgressSection {
               ticks: {
                 color: '#4d5b6b',
                 font: {
-                  size: 11,
+                  size: 12,
                   family: '"Segoe UI", Roboto, sans-serif'
                 },
-                maxTicksLimit: 10,
                 callback: function(value, index) {
-                  const isToday = index === data.labels.length - 1;
-                  const label = data.labels[index];
-                  return isToday ? `📍 ${label}` : label;
+                  return data.labels && data.labels[index] ? data.labels[index] : value;
                 }
               },
               border: {
@@ -207,75 +208,54 @@ export default class ProgressSection {
           }
         }
       });
-    } 
-  
-
- #getChartDataFromModel() {
-    if (!this.#habitModel || !this.#habitModel.getProgressHistory) {
-      console.warn('Model or getProgressHistory method not available, using fallback');
-      return this.#generateFallbackData();
+      
+    } catch (error) {
+      console.error('Error initializing chart:', error);
     }
+  }
 
-    const progressHistory = this.#habitModel.getProgressHistory();
-    
-    const today = new Date().toISOString().split('T')[0];
-    const todayRecord = progressHistory.find(day => day.date === today);
-    
-    if (todayRecord) {
-      const currentCompleted = this.#stats.today.completed;
-      todayRecord.completed = currentCompleted;
+  #getRealWeekData() {
+    if (!this.#habitModel || !this.#habitModel.getWeekProgress) {
+      return this.#generateFallbackWeekData();
     }
     
-    const last30Days = progressHistory.slice(-30);
+    const weekProgress = this.#habitModel.getWeekProgress();
     const labels = [];
     const values = [];
+    const totals = [];
     
-    last30Days.forEach(day => {
-      const date = new Date(day.date);
-      const dayNum = date.getDate();
-      const month = date.toLocaleString('ru', { month: 'short' });
-      labels.push(`${dayNum} ${month}`);
-      values.push(day.completed);
+    weekProgress.forEach((dayData, index) => {
+      const dayNumber = dayData.day;
+      const dayName = DaysOfWeek[dayNumber] || `День ${dayNumber}`;
+      
+      labels.push(dayName);
+      values.push(dayData.completed);
+      totals.push(dayData.total);
     });
     
-    const lastValue = values[values.length - 1];
-    const statsCompleted = this.#stats.today.completed;
-    
-    if (lastValue !== statsCompleted) {
-      values[values.length - 1] = statsCompleted;
-    }
-    
-    return { labels, values };
+    return { labels, values, totals };
   }
 
-  #generateFallbackData() {
-  const totalHabits = this.#stats.today.total;
-  const labels = [];
-  const values = [];
-  
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
+  #generateFallbackWeekData() {
+    const totalHabits = this.#stats.today.total;
+    const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const labels = [];
+    const values = [];
+    const totals = [];
     
-    const day = date.getDate();
-    const month = date.toLocaleString('ru', { month: 'short' });
-    labels.push(`${day} ${month}`);
-    
-    let completedToday;
-    
-    if (i === 29) {
-      completedToday = this.#stats.today.completed;
-      console.log('Fallback - Today value (real):', completedToday);
-    } else {
-      completedToday = Math.floor(Math.random() * (totalHabits + 1));
+
+    for (let i = 0; i < 7; i++) {
+      labels.push(daysOfWeek[i]);
+      values.push(0);
+      totals.push(totalHabits);
     }
     
-    values.push(completedToday);
+    if (this.#stats.today.completed > 0) {
+      values[6] = this.#stats.today.completed;
+    }
+    
+    return { labels, values, totals };
   }
-  
-  console.log('Fallback data generated. Today value:', values[values.length - 1]);
-  return { labels, values };
-}
 
   removeElement() {
     this.element = null;

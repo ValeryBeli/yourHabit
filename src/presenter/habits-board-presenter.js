@@ -1,6 +1,7 @@
 import HabitCard from '../view/habit-card.js';
 import ProgressSection from '../view/progress-section.js';
 import ModalComponent from '../view/modal-component.js';
+import SavingIndicator from '../view/saving-indicator.js';
 import {render} from '../framework/render.js';
 import {UserAction, UpdateType} from '../const.js';
 
@@ -13,6 +14,8 @@ export default class HabitsBoardPresenter {
   #stats = {};
   #modal = null;
   #progressSection = null;
+  #savingIndicator = null;
+  #isSaving = false;
 
   constructor({habitsContainer, progressContainer, habitModel, bodyContainer}) {
     this.#habitsContainer = habitsContainer;
@@ -20,11 +23,30 @@ export default class HabitsBoardPresenter {
     this.#habitModel = habitModel;
     this.#bodyContainer = bodyContainer;
     
+    this.#savingIndicator = new SavingIndicator();
+    render(this.#savingIndicator, this.#bodyContainer);
+    
     this.#habitModel.addObserver(this.#handleModelEvent.bind(this));
   }
 
   async init() {
     await this.#habitModel.init();
+  }
+
+  #showSavingIndicator() {
+    if (!this.#isSaving) {
+      this.#isSaving = true;
+      this.#savingIndicator.show();
+    }
+  }
+
+  #hideSavingIndicator() {
+    this.#isSaving = false;
+    setTimeout(() => {
+      if (!this.#isSaving) {
+        this.#savingIndicator.hide();
+      }
+    }, 500);
   }
 
   #handleModelEvent(updateType, data) {
@@ -45,12 +67,15 @@ export default class HabitsBoardPresenter {
         this.#stats = this.#habitModel.stats;
         this.#renderHabits();
         this.#renderProgress();
+        this.#hideSavingIndicator();
         break;
         
       case UserAction.UPDATE_HABIT_PROGRESS:
         this.#updateHabitCard(data.habitId);
         this.#stats = this.#habitModel.stats;
         this.#renderProgress();
+        this.#showSavingIndicator();
+        setTimeout(() => this.#hideSavingIndicator(), 2000);
         break;
     }
   }
@@ -62,6 +87,7 @@ export default class HabitsBoardPresenter {
       return;
     }
     
+    habitsListContainer.classList.remove('loading');
     habitsListContainer.innerHTML = '';
     
     this.#habits.forEach((habit) => {
@@ -156,14 +182,30 @@ export default class HabitsBoardPresenter {
       const habitId = evt.target.dataset.habitId;
       const day = parseInt(evt.target.dataset.day);
       
+      const isToday = day === 7;
+      
       const currentStatus = evt.target.classList.contains('completed') ? 'completed' : 'pending';
       const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+      
+      evt.target.classList.toggle('completed', newStatus === 'completed');
+      evt.target.classList.toggle('pending', newStatus === 'pending');
+      
+      if (isToday) {
+        evt.target.style.fontWeight = newStatus === 'completed' ? 'bold' : 'normal';
+      }
       
       try {
         await this.#habitModel.updateHabitProgress(habitId, day, newStatus);
       } catch (err) {
         console.error('Ошибка при обновлении прогресса:', err);
-        alert('Ошибка при обновлении прогресса. Проверьте консоль для подробностей.');
+        
+        evt.target.classList.toggle('completed', currentStatus === 'completed');
+        evt.target.classList.toggle('pending', currentStatus === 'pending');
+        if (isToday) {
+          evt.target.style.fontWeight = currentStatus === 'completed' ? 'bold' : 'normal';
+        }
+        
+        alert(`Ошибка: ${err.message}\n\nИзменения не были сохранены на сервере.`);
       }
       return;
     }

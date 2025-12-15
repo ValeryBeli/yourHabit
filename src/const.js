@@ -11,13 +11,13 @@ export const StatType = {
 };
 
 export const StatTitle = {
-  [StatType.TODAY]: 'Выполнено сегодня',
+  [StatType.TODAY]: 'Мой уровень',
   [StatType.CURRENT_STREAK]: 'Текущая серия',
   [StatType.BEST_STREAK]: 'Лучшая серия'
 };
 
 export const StatDefaults = {
-  CURRENT_STREAK: 3,
+  CURRENT_STREAK: 0,
   BEST_STREAK: 10
 };
 
@@ -33,4 +33,14 @@ export const UpdateType = {
   PATCH: 'PATCH',
   MINOR: 'MINOR',
   MAJOR: 'MAJOR'
+};
+
+export const DaysOfWeek = {
+  1: 'Пн',
+  2: 'Вт',
+  3: 'Ср',
+  4: 'Чт',
+  5: 'Пт',
+  6: 'Сб',
+  7: 'Вс'
 };

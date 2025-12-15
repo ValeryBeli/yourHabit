@@ -1,15 +1,19 @@
 import {createElement} from '../framework/render.js';
+import {DaysOfWeek} from '../const.js';
 
 function createHabitCardTemplate(habit) {
-  const progressButtons = habit.progress.map((day, index) => {
-    const dayNumber = index + 1;
+  const progressButtons = habit.progress.map((day) => {
+    const dayName = DaysOfWeek[day.day] || day.day;
     return `
       <button 
         class="progress-btn ${day.status}" 
-        aria-label="День ${dayNumber}: ${day.status === 'completed' ? 'выполнено' : 'не выполнено'}"
+        aria-label="${dayName}: ${day.status === 'completed' ? 'выполнено' : 'не выполнено'}"
         data-habit-id="${habit.id}"
-        data-day="${dayNumber}"
-      ></button>
+        data-day="${day.day}"
+        title="${dayName}"
+      >
+        ${dayName}
+      </button>
     `;
   }).join('');
 
@@ -23,8 +27,8 @@ function createHabitCardTemplate(habit) {
         </div>
       </div>
       <p>${habit.description}</p>
-      <p>Текущая серия: <span class="streak">🔥${habit.currentStreak} ${habit.currentStreak === 1 ? 'день' : 'дня'}</span></p>
-      <p>Последние 7 дней:</p>
+      <p>Текущая серия: <span class="streak">${habit.currentStreak}🔥</span></p>
+      <p>Отметки за эту неделю :</p>
       <div class="habit-progress">
         ${progressButtons}
       </div>

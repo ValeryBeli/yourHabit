@@ -10,7 +10,14 @@ const Method = {
 export default class HabitsApiService extends ApiService {
   get habits() {
     return this._load({url: 'habits'})
-      .then(ApiService.parseResponse);
+      .then(ApiService.parseResponse)
+      .then(data => {
+        return data;
+      })
+      .catch(error => {
+        console.error('Error fetching habits:', error);
+        throw error;
+      });
   }
 
   async addHabit(habit) {
@@ -21,10 +28,12 @@ export default class HabitsApiService extends ApiService {
       headers: new Headers({'Content-Type': 'application/json'}),
     });
 
-    return ApiService.parseResponse(response);
+    const result = await ApiService.parseResponse(response);
+    return result;
   }
 
   async updateHabit(habit) {
+ 
     const response = await this._load({
       url: `habits/${habit.id}`,
       method: Method.PUT,
@@ -32,7 +41,8 @@ export default class HabitsApiService extends ApiService {
       headers: new Headers({'Content-Type': 'application/json'}),
     });
 
-    return ApiService.parseResponse(response);
+    const parsedResponse = await ApiService.parseResponse(response);
+    return parsedResponse;
   }
 
   async deleteHabit(id) {

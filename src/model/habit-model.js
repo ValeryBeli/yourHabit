@@ -1,12 +1,14 @@
-import { habits, stats } from '../mock/habit.js';
-import { StatDefaults, UserAction, UpdateType } from '../const.js';
+import { StatDefaults, UserAction, UpdateType, DaysOfWeek } from '../const.js';
 import Observable from '../framework/observable.js';
+import { debounce } from '../utils.js';
 
 export default class HabitModel extends Observable {
   #habitsApiService = null;
   #habits = [];
   #stats = {};
-  #progressHistory = [];
+  #weekProgressHistory = []; 
+  #pendingUpdates = new Map();
+  #saveToServerDebounced;
 
   constructor({habitsApiService}) {
     super();
@@ -14,8 +16,12 @@ export default class HabitModel extends Observable {
     this.#stats = { 
       today: { completed: 0, total: 0 },
       currentStreak: StatDefaults.CURRENT_STREAK,
-      bestStreak: StatDefaults.BEST_STREAK
+      bestStreak: StatDefaults.BEST_STREAK,
+      current_streak: StatDefaults.CURRENT_STREAK,
+      best_streak: StatDefaults.BEST_STREAK
     };
+    
+    this.#saveToServerDebounced = debounce(this.#savePendingUpdates.bind(this), 500);
   }
 
   get habits() {
@@ -34,35 +40,175 @@ export default class HabitModel extends Observable {
     return this.#stats[type];
   }
 
-  getProgressHistory() {
-    return this.#progressHistory;
+  getWeekProgress() {
+    return this.#weekProgressHistory;
   }
 
   async init() {
     try {
       const habits = await this.#habitsApiService.habits;
-        
-        this.#habits = habits.map(habit => ({
-          id: habit.id,
-          title: habit.title,
-          description: habit.description || '',
-          currentStreak: habit.currentStreak || 0,
-          progress: habit.progress || Array(7).fill().map((_, index) => ({
-            day: index + 1,
-            status: 'pending'
-          }))
+      
+      this.#processHabitsData(habits);
+      this._notify(UpdateType.INIT);
+      
+    } catch(err) {
+      console.error('Ошибка загрузки привычек с API:', err);
+      this.#processHabitsData([]);
+      this._notify(UpdateType.INIT);
+    }
+  }
+
+  #processHabitsData(habitsData) {
+    this.#habits = habitsData.map(habit => {
+      let progress;
+      
+      if (Array.isArray(habit.progress)) {
+        progress = habit.progress.map(p => ({
+          day: typeof p.day === 'string' ? parseInt(p.day) : (p.day || 1),
+          status: p.status || 'pending'
         }));
         
-        this.#initializeProgressHistory();
-        this.#recalculateTodayStats();
-        this.#habits.forEach(habit => this.#recalculateStreak(habit));
+        progress.sort((a, b) => a.day - b.day);
         
-        this._notify(UpdateType.INIT);
-      } catch(err) {
-        console.error('Ошибка загрузки привычек:', err);
-        this.#habits = [];
-        this._notify(UpdateType.INIT);
+        if (progress.length < 7) {
+          for (let i = progress.length; i < 7; i++) {
+            progress.push({ day: i + 1, status: 'pending' });
+          }
+        }
+      } else {
+        progress = Array(7).fill().map((_, index) => ({
+          day: index + 1,
+          status: 'pending'
+        }));
       }
+      
+      return {
+        id: habit.id?.toString() || Date.now().toString(),
+        title: habit.title || 'Новая привычка',
+        description: habit.description || '',
+        currentStreak: Number(habit.currentStreak) || 0,
+        progress: progress
+      };
+    });
+    
+    this.#initializeWeekProgressHistory();
+    this.#recalculateTodayStats();
+    this.#habits.forEach(habit => this.#recalculateStreak(habit));
+    this.#recalculateOverallCurrentStreak();
+  }
+
+  async #savePendingUpdates() {
+    if (this.#pendingUpdates.size === 0) return;
+    
+    const updates = Array.from(this.#pendingUpdates.values());
+    this.#pendingUpdates.clear();
+    
+    for (const update of updates) {
+      try {
+        await this.#habitsApiService.updateHabit(update);
+      } catch (err) {
+        console.warn(`Failed to save habit ${update.id}:`, err.message);
+        this.#pendingUpdates.set(update.id, update);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  async updateHabitProgress(habitId, day, status) {
+    const habitIndex = this.#habits.findIndex(h => h.id === habitId);
+    if (habitIndex === -1) return;
+    
+    const habit = this.#habits[habitIndex];
+    const dayIndex = habit.progress.findIndex(p => p.day === day);
+    if (dayIndex === -1) return;
+    
+    const wasCompleted = habit.progress[dayIndex].status === 'completed';
+    habit.progress[dayIndex].status = status;
+    
+    this.#updateWeekProgressHistory(day, wasCompleted, status === 'completed');
+    
+    this.#recalculateStreak(habit);
+    this.#recalculateTodayStats();
+    this.#recalculateOverallCurrentStreak();
+    
+    this._notify(UserAction.UPDATE_HABIT_PROGRESS, {
+      habitId,
+      day,
+      status,
+      habit
+    });
+    
+    const habitToSave = {
+      id: habit.id,
+      title: habit.title,
+      description: habit.description,
+      currentStreak: habit.currentStreak,
+      progress: [...habit.progress]
+    };
+    
+    this.#pendingUpdates.set(habitId, habitToSave);
+    this.#saveToServerDebounced();
+  }
+
+  #initializeWeekProgressHistory() {
+    this.#weekProgressHistory = [];
+    const totalHabits = this.#habits.length;
+    
+    for (let day = 1; day <= 7; day++) {
+      let completedCount = 0;
+      
+      this.#habits.forEach(habit => {
+        const dayProgress = habit.progress.find(p => p.day === day);
+        if (dayProgress && dayProgress.status === 'completed') {
+          completedCount++;
+        }
+      });
+      
+      this.#weekProgressHistory.push({
+        day: day,
+        completed: completedCount,
+        total: totalHabits
+      });
+    }
+    
+  }
+
+  #recalculateOverallCurrentStreak() {
+    if (!Array.isArray(this.#weekProgressHistory) || this.#weekProgressHistory.length === 0) {
+      this.#stats.current_streak = 0;
+      this.#stats.currentStreak = 0;
+      return;
+    }
+
+    let streak = 0;
+    for (let i = this.#weekProgressHistory.length - 1; i >= 0; i--) {
+      const day = this.#weekProgressHistory[i];
+      if (day.total > 0 && day.completed === day.total) {
+        streak += 1;
+      } else {
+        break;
+      }
+    }
+
+    this.#stats.current_streak = streak;
+    this.#stats.currentStreak = streak;
+  }
+
+  #updateWeekProgressHistory(day, wasCompleted, isNowCompleted) {
+    const dayIndex = day - 1; 
+    
+    if (dayIndex >= 0 && dayIndex < this.#weekProgressHistory.length) {
+      if (!wasCompleted && isNowCompleted) {
+        this.#weekProgressHistory[dayIndex].completed += 1;
+      } else if (wasCompleted && !isNowCompleted) {
+        this.#weekProgressHistory[dayIndex].completed = Math.max(
+          0, 
+          this.#weekProgressHistory[dayIndex].completed - 1
+        );
+      }
+      
+    }
   }
 
   async addHabit(habitData) {
@@ -79,15 +225,35 @@ export default class HabitModel extends Observable {
     try {
       const createdHabit = await this.#habitsApiService.addHabit(newHabit);
       this.#habits.push(createdHabit);
+      
+      this.#updateWeekHistoryForNewHabit();
+      
       this.#recalculateTodayStats();
-      this.#updateProgressHistoryForNewHabit();
+      this.#recalculateOverallCurrentStreak();
       
       this._notify(UserAction.ADD_HABIT, createdHabit);
       return createdHabit;
+      
     } catch (err) {
-      console.error('Ошибка при добавлении привычки на сервер:', err);
+      console.error('Error adding habit:', err);
       throw err;
     }
+  }
+
+  #updateWeekHistoryForNewHabit() {
+    this.#weekProgressHistory.forEach(day => {
+      day.total += 1;
+    });
+    
+    const newHabit = this.#habits[this.#habits.length - 1];
+    newHabit.progress.forEach(dayProgress => {
+      if (dayProgress.status === 'completed') {
+        const dayIndex = dayProgress.day - 1;
+        if (dayIndex >= 0 && dayIndex < this.#weekProgressHistory.length) {
+          this.#weekProgressHistory[dayIndex].completed += 1;
+        }
+      }
+    });
   }
 
   async updateHabit(id, habitData) {
@@ -106,7 +272,7 @@ export default class HabitModel extends Observable {
         this._notify(UserAction.UPDATE_HABIT, savedHabit);
         return savedHabit;
       } catch (err) {
-        console.error('Ошибка при обновлении привычки на сервер:', err);
+        console.error('Error updating habit:', err);
         throw err;
       }
     }
@@ -117,169 +283,66 @@ export default class HabitModel extends Observable {
     const index = this.#habits.findIndex(habit => habit.id === id);
     if (index !== -1) {
       try {
-        await this.#habitsApiService.deleteHabit(id);
         const deletedHabit = this.#habits[index];
         
-        this.#updateProgressHistoryForDeletedHabit(deletedHabit);
+        this.#updateWeekHistoryForDeletedHabit(deletedHabit);
+        
+        await this.#habitsApiService.deleteHabit(id);
         this.#habits.splice(index, 1);
         this.#recalculateTodayStats();
+        this.#recalculateOverallCurrentStreak();
         
         this._notify(UserAction.DELETE_HABIT, deletedHabit);
         return true;
       } catch (err) {
-        console.error('Ошибка при удалении привычки с сервера:', err);
+        console.error('Error deleting habit:', err);
         throw err;
       }
     }
     return false;
   }
 
-  async updateHabitProgress(habitId, day, status) {
-    const habit = this.getHabitById(habitId);
-    if (habit) {
-      const dayProgress = habit.progress.find(p => p.day === day);
-      if (dayProgress) {
-        const wasCompleted = dayProgress.status === 'completed';
-        dayProgress.status = status;
-        
-        try {
-          const updatedHabit = await this.#habitsApiService.updateHabit(habit);
-          const index = this.#habits.findIndex(h => h.id === habitId);
-          this.#habits[index] = updatedHabit;
-          
-          if (day === 1) {
-            this.#updateTodayInProgressHistory(wasCompleted, status === 'completed');
-          }
-          
-          this.#recalculateStreak(habit);
-          this.#recalculateTodayStats();
-          
-          this._notify(UserAction.UPDATE_HABIT_PROGRESS, {
-            habitId,
-            day,
-            status,
-            habit: updatedHabit
-          });
-        } catch (err) {
-          console.error('Ошибка при обновлении прогресса на сервере:', err);
-          throw err;
+  #updateWeekHistoryForDeletedHabit(habit) {
+    this.#weekProgressHistory.forEach(day => {
+      day.total -= 1;
+    });
+    
+    habit.progress.forEach(dayProgress => {
+      if (dayProgress.status === 'completed') {
+        const dayIndex = dayProgress.day - 1;
+        if (dayIndex >= 0 && dayIndex < this.#weekProgressHistory.length) {
+          this.#weekProgressHistory[dayIndex].completed = Math.max(
+            0, 
+            this.#weekProgressHistory[dayIndex].completed - 1
+          );
         }
       }
-    }
-  }
-
-  #initializeProgressHistory() {
-    this.#progressHistory = [];
-    const totalHabits = this.#habits.length;
-    
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      
-      let completedToday;
-      
-      if (i === 29) {
-        completedToday = this.#calculateTodayCompleted();
-      } else {
-        completedToday = this.#generateRealisticPastData(i, totalHabits);
-      }
-      
-      this.#progressHistory.push({
-        date: date.toISOString().split('T')[0],
-        completed: completedToday,
-        total: totalHabits
-      });
-    }
-  }
-
-  #calculateTodayCompleted() {
-    const TODAY_DAY = 1;
-    let completedToday = 0;
-    
-    this.#habits.forEach(habit => {
-      const todayProgress = habit.progress.find(p => p.day === TODAY_DAY);
-      if (todayProgress && todayProgress.status === 'completed') {
-        completedToday++;
-      }
     });
-    
-    return completedToday;
-  }
-
-  #generateRealisticPastData(dayOffset, totalHabits) {
-    const randomFactor = Math.random();
-    const dayOfWeek = (new Date().getDay() - dayOffset + 7) % 7;
-    
-    if (dayOfWeek <= 2) {
-      if (randomFactor < 0.4) return totalHabits;
-      if (randomFactor < 0.7) return Math.floor(totalHabits * 0.8);
-      return Math.floor(totalHabits * 0.6);
-    } else if (dayOfWeek <= 4) {
-      if (randomFactor < 0.3) return totalHabits;
-      if (randomFactor < 0.6) return Math.floor(totalHabits * 0.7);
-      return Math.floor(totalHabits * 0.5);
-    } else {
-      if (randomFactor < 0.2) return totalHabits;
-      if (randomFactor < 0.5) return Math.floor(totalHabits * 0.6);
-      return Math.floor(totalHabits * 0.4);
-    }
-  }
-
-  #updateProgressHistoryForNewHabit() {
-    this.#progressHistory.forEach(day => {
-      day.total += 1;
-    });
-  }
-
-  #updateProgressHistoryForDeletedHabit(habit) {
-    const TODAY_DAY = 1;
-    const todayProgress = habit.progress.find(p => p.day === TODAY_DAY);
-    const wasCompletedToday = todayProgress && todayProgress.status === 'completed';
-    
-    this.#progressHistory.forEach(day => {
-      day.total -= 1;
-      if (day.date === this.#getTodayDate() && wasCompletedToday) {
-        day.completed = Math.max(0, day.completed - 1);
-      }
-    });
-  }
-
-  #getTodayDate() {
-    return new Date().toISOString().split('T')[0];
-  }
-
-  #updateTodayInProgressHistory(wasCompleted, isNowCompleted) {
-    const today = this.#getTodayDate();
-    const todayRecord = this.#progressHistory.find(day => day.date === today);
-    
-    if (todayRecord) {
-      if (!wasCompleted && isNowCompleted) {
-        todayRecord.completed += 1;
-      } else if (wasCompleted && !isNowCompleted) {
-        todayRecord.completed = Math.max(0, todayRecord.completed - 1);
-      }
-    }
   }
 
   #recalculateStreak(habit) {
-    let streak = 0;
+    let currentStreak = 0;
+    let maxStreak = 0;
     
     for (let i = 0; i < habit.progress.length; i++) {
       if (habit.progress[i].status === 'completed') {
-        streak++;
+        currentStreak++; 
+        if (currentStreak > maxStreak) {
+          maxStreak = currentStreak;
+        }
       } else {
-        break;
+        currentStreak = 0; 
       }
     }
     
-    habit.currentStreak = streak;
+    habit.currentStreak = maxStreak;
   }
 
   #recalculateTodayStats() {
     const totalHabits = this.#habits.length;
     let completedToday = 0;
 
-    const TODAY_DAY = 1;
+    const TODAY_DAY = 7; 
 
     this.#habits.forEach(habit => {
       const todayProgress = habit.progress.find(p => p.day === TODAY_DAY);
@@ -295,7 +358,7 @@ export default class HabitModel extends Observable {
   }
 
   getTodayProgress() {
-    const TODAY_DAY = 1;
+    const TODAY_DAY = 7;
     return this.#habits.map(habit => {
       const todayProgress = habit.progress.find(p => p.day === TODAY_DAY);
       return {
