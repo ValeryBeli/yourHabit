@@ -5,7 +5,7 @@ import FooterComponent from './view/footer-component.js';
 import {render, RenderPosition} from './framework/render.js';
 import HabitModel from './model/habit-model.js';
 import HabitsBoardPresenter from './presenter/habits-board-presenter.js';
-import HabitsApiService from './habits-api-service.js';
+import HabitsApiService from './framework/habits-api-service.js';
 
 const API_URL = 'https://690a07c91a446bb9cc211096.mockapi.io';
 
